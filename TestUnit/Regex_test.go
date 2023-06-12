@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func CheckEmail(t *testing.T,content string,result string)  {
+func CheckEmail(content string,result string)  {
 	emailList := EmailMiner.GuessEmail(content)
 	if len(emailList) == 0{
 		log.Println("检测邮箱失败:",result)
@@ -18,6 +18,6 @@ func CheckEmail(t *testing.T,content string,result string)  {
 }
 
 func TestRegex(t *testing.T) {
-	CheckEmail(t,"onmousemove=\"xr_mo(this,0)\" >office&#64;computer-corner.at</a","office@computer-corner.at")
-	CheckEmail(t,"aggregated_ranges\":[],\"ranges\":[],\"color_ranges\":[],\"text\":\"thefonerepairs\\u0040gmail.com\"}},\"__module_o","thefonerepairs@gmail.com")
+	CheckEmail("onmousemove=\"xr_mo(this,0)\" >office&#64;computer-corner.at</a","office@computer-corner.at")
+	CheckEmail("aggregated_ranges\":[],\"ranges\":[],\"color_ranges\":[],\"text\":\"thefonerepairs\\u0040gmail.com\"}},\"__module_o","thefonerepairs@gmail.com")
 }
