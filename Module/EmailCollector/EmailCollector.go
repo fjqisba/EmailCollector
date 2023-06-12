@@ -2,23 +2,28 @@ package EmailCollector
 
 import (
 	"EmailCollector/Module/EmailMiner"
-	"EmailCollector/Module/PhantomJS"
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"github.com/panjf2000/ants/v2"
+	"log"
 	"os"
 	"strconv"
 	"strings"
-	"time"
+	"sync"
 )
 
 type EmailCollector struct {
+	//输出文件
 	hCsvOut *csv.Writer
+	fileMutex sync.Mutex
+	//输入网址列表
 	txtFilePath string
+	//线程个数
 	threadCount int
+	//线程池
 	hPool *ants.Pool
+	wg sync.WaitGroup
 }
 
 func NewEmailCollector(hOutCsv *csv.Writer,filepath string,thCount int)*EmailCollector  {
@@ -26,6 +31,24 @@ func NewEmailCollector(hOutCsv *csv.Writer,filepath string,thCount int)*EmailCol
 		hCsvOut: hOutCsv,
 		txtFilePath: filepath,
 		threadCount: thCount,
+	}
+}
+
+func (this *EmailCollector)queryTaskWrapper(id int,webUrl string)func()  {
+	return func() {
+		var emailMiner EmailMiner.EmailMiner
+		emailList := emailMiner.DetectEmail(webUrl)
+		strEmail,_ := json.Marshal(emailList)
+		this.fileMutex.Lock()
+		if len(emailList) == 0{
+			this.hCsvOut.Write([]string{strconv.Itoa(id),webUrl,""})
+		}else{
+			log.Println(webUrl,"检测出邮箱:",string(strEmail))
+			this.hCsvOut.Write([]string{strconv.Itoa(id),webUrl,string(strEmail)})
+		}
+		this.hCsvOut.Flush()
+		this.fileMutex.Unlock()
+		this.wg.Done()
 	}
 }
 
@@ -44,31 +67,13 @@ func (this *EmailCollector)StartWork()error  {
 	hScanner := bufio.NewScanner(hFile)
 	index := 0
 	for hScanner.Scan() {
-		line := hScanner.Text()
-		line = strings.TrimSpace(line)
-		if line == ""{
-			continue
-		}
 		tmpIndex := index
 		index = index + 1
-		this.hPool.Submit(func() {
-
-
-			fmt.Println("爬取网址:",tmpIndex,line)
-			EmailMiner.DetectEmail(hPool,tmpIndex,line)
-			pageContent := PhantomJS.GetPageHtml(line)
-			emailList := GuessEmail(pageContent)
-			strEmail, _ := json.Marshal(emailList)
-			tmpMutex.Lock()
-			if len(emailList) == 0{
-				hCsvOut.Write([]string{strconv.Itoa(tmpIndex),line,""})
-			}else{
-				hCsvOut.Write([]string{strconv.Itoa(tmpIndex),line,string(strEmail)})
-			}
-			hCsvOut.Flush()
-			tmpMutex.Unlock()
-			time.Sleep(10 * time.Second)
-		})
+		line := hScanner.Text()
+		line = strings.TrimSpace(line)
+		this.wg.Add(1)
+		this.hPool.Submit(this.queryTaskWrapper(tmpIndex,line))
 	}
+	this.wg.Wait()
 	return nil
 }
