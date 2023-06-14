@@ -14,7 +14,6 @@ type ContactDetector struct {
 }
 
 func (this *ContactDetector)FilterUrl(urlPath string)bool {
-
 	if strings.HasSuffix(urlPath,".png"){
 		return true
 	}
@@ -87,6 +86,7 @@ func (this *ContactDetector)ExtractContactUrl(webUrl string,pageContent string)[
 		if newDomain != this.rawDomain{
 			continue
 		}
+		newUrl.Path = strings.ToLower(newUrl.Path)
 		if this.FilterUrl(newUrl.Path){
 			continue
 		}

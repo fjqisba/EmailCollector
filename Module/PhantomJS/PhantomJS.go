@@ -7,7 +7,7 @@ import (
 )
 
 func GetPageHtml(url string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Minute)
 	defer cancel()
 	cmd := exec.CommandContext(ctx,"./rsrc/phantomjs.exe",
 		"./rsrc/page.js", url)

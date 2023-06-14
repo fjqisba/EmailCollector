@@ -18,11 +18,9 @@ var(
 )
 
 type EmailMiner struct {
-	wg sync.WaitGroup
 	mutex sync.Mutex
 	emailList []string
 	emailFilterMap map[string]struct{}
-	concurrencyCh chan struct{}
 }
 
 func filterEmail(emailAddr string)bool  {
@@ -69,8 +67,6 @@ func GuessEmail(content string)(retList []string)  {
 }
 
 func (this *EmailMiner)exploreUrl(webUrl string)string  {
-	defer this.wg.Done()
-	this.concurrencyCh <- struct{}{}
 	log.Println("检测网址:",webUrl)
 	pageContent := PhantomJS.GetPageHtml(webUrl)
 	emailList := GuessEmail(pageContent)
@@ -82,13 +78,11 @@ func (this *EmailMiner)exploreUrl(webUrl string)string  {
 		}
 	}
 	this.mutex.Unlock()
-	<- this.concurrencyCh
 	return pageContent
 }
 
 func (this *EmailMiner)DetectEmail(webUrl string)[]string {
 	this.emailFilterMap = make(map[string]struct{})
-	this.concurrencyCh = make(chan struct{},3)
 	eUrl,err := url.Parse(webUrl)
 	if err != nil{
 		return nil
@@ -102,7 +96,6 @@ func (this *EmailMiner)DetectEmail(webUrl string)[]string {
 		return nil
 	}
 	_,bLocation := Const.LocationDomainMap[eDomain]
-	this.wg.Add(1)
 	pageContent := this.exploreUrl(webUrl)
 	if len(this.emailList) > 0{
 		return this.emailList
@@ -111,10 +104,8 @@ func (this *EmailMiner)DetectEmail(webUrl string)[]string {
 		var contactDetector ContactDetector.ContactDetector
 		pathList := contactDetector.ExtractContactUrl(webUrl,pageContent)
 		for _,ePathUrl := range pathList {
-			this.wg.Add(1)
-			go this.exploreUrl(ePathUrl)
+			this.exploreUrl(ePathUrl)
 		}
 	}
-	this.wg.Wait()
 	return this.emailList
 }

@@ -15,6 +15,7 @@ var(
 		"business.site":{},
 		"tiktok.com":{},
 		"facebook.com":{},
+		"whatsapp.com":{},
 	}
 	//联系关键词
 	ContactKeyWords = []string{
@@ -30,6 +31,7 @@ var(
 		"hubungan",
 		"hubungi",
 		"ikopanya",
+		"impressum",
 		"kapcsolatba",
 		"kukhudzana",
 		"kontak",
